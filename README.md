@@ -7,21 +7,21 @@ A decentralized task management application built on Ethereum blockchain. Manage
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=for-the-badge&logo=react)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.18-38B2AC?style=for-the-badge&logo=tailwind-css)
 
-## 🌟 Features
+## Features
 
 - **Decentralized Storage**: All tasks are stored on the Ethereum blockchain
 - **Wallet Integration**: Connect with MetaMask to manage your tasks
 - **Full CRUD Operations**:
-  - ✅ Create new tasks
-  - ✅ Update task names
-  - ✅ Mark tasks as completed
-  - ✅ Delete tasks
+  - Create new tasks
+  - Update task names
+  - Mark tasks as completed
+  - Delete tasks
 - **Real-time Updates**: Automatic UI refresh after blockchain transactions
 - **Event Logging**: All operations emit blockchain events for transparency
 - **User-specific Tasks**: Each wallet address has its own task list
 - **Modern UI**: Beautiful, responsive interface with gradient effects and animations
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - **React** - UI framework
@@ -37,14 +37,14 @@ A decentralized task management application built on Ethereum blockchain. Manage
 - **Truffle** - Development framework
 - **Ganache** - Local blockchain for testing
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Node.js (v16 or higher)
 - npm or yarn
 - MetaMask browser extension
 - Ganache (for local development)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone the Repository
 
@@ -88,7 +88,7 @@ PRIVATE_KEY=your_wallet_private_key_here
 ALCHEMY_API_KEY=your_alchemy_api_key_here
 ```
 
-**⚠️ IMPORTANT**: Never commit your `.env` file to version control. It's already in `.gitignore`.
+**WARNING**: Never commit your `.env` file to version control. It's already in `.gitignore`.
 
 ### 6. Deploy Smart Contracts
 
@@ -118,7 +118,7 @@ npm run dev
 
 The application will be available at `http://localhost:5173`
 
-## 📝 Smart Contract Overview
+## Smart Contract Overview
 
 ### Contract: `Todo.sol`
 
@@ -155,7 +155,7 @@ struct Task {
 - `TaskDeleted(address indexed user, uint256 indexed taskId)`
 - `TaskCompleted(address indexed user, uint256 indexed taskId)`
 
-## 💻 Usage
+## Usage
 
 ### 1. Connect Wallet
 
@@ -173,7 +173,7 @@ Enter your task name in the input field and click "Add Task". Confirm the transa
 
 All operations require MetaMask transaction confirmation and will cost gas fees.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 voting-dapp/
@@ -198,7 +198,7 @@ voting-dapp/
 └── package.json        # Dependencies
 ```
 
-## 🎨 UI Components
+## UI Components
 
 ### Navbar
 - Displays wallet connection status
@@ -221,7 +221,7 @@ voting-dapp/
 - Visual feedback for completed tasks
 - Timestamp display
 
-## 🔧 Configuration
+## Configuration
 
 ### Network Configuration
 
@@ -246,7 +246,7 @@ Update the contract address in `src/contracts/Todo.js` after deployment:
 export const CONTRACT_ADDRESS = 'YOUR_CONTRACT_ADDRESS';
 ```
 
-## 🧪 Testing
+## Testing
 
 Run Truffle tests:
 
@@ -254,7 +254,7 @@ Run Truffle tests:
 truffle test
 ```
 
-## 🚢 Deployment
+## Deployment
 
 ### Deploy to Testnet (e.g., Sepolia)
 
@@ -268,18 +268,18 @@ truffle migrate --network sepolia
 
 ### Deploy to Mainnet
 
-⚠️ **Warning**: Deploying to mainnet costs real ETH. Ensure thorough testing first.
+**Warning**: Deploying to mainnet costs real ETH. Ensure thorough testing first.
 
 ```bash
 truffle migrate --network mainnet
 ```
 
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with React, Tailwind CSS, and Solidity
 - UI components inspired by modern Web3 applications
