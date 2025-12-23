@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import TaskInput from './components/TaskInput';
 import TaskList from './components/TaskList';
@@ -7,9 +7,18 @@ import toast, { Toaster } from 'react-hot-toast';
 import { getTodoContract } from "./contracts/Todo";
 
 function App() {
+  // const ALCHEMY_API_KEY = import.meta.env.ALCHEMY_API_KEY
   const [walletAddress, setWalletAddress] = useState('');
   const [contract, setContract] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    const savedAddress = localStorage.getItem('walletAddress');
+    if (savedAddress) {
+      handleConnect();
+    }
+  }, []);
 
   const parseTaskData = (task) => ({
     id: Number(task.id),
@@ -37,6 +46,7 @@ function App() {
   };
 
   const executeTaskTransaction = async (txPromise, eventName, successMessage, errorMessage) => {
+    setIsLoading(true);
     try {
       const tx = await txPromise;
       const receipt = await tx.wait();
@@ -51,6 +61,8 @@ function App() {
     } catch (error) {
       console.error(errorMessage, error);
       toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,11 +74,18 @@ function App() {
     
     try{
       await window.ethereum.request({method: 'eth_requestAccounts'});
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: "0xaa36a7"}],
+      })
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
-      return { provider, signer, address };
+      return { provider, signer, address }; 
     } catch (error){
+      if(error.code === 4902){
+        toast.error("Add Sepolia Chain to your wallet")
+      }
        console.error("Error connecting wallet:", error);
        toast.error("Error connecting wallet");
        return null;
@@ -85,16 +104,30 @@ function App() {
   };
 
   const handleConnect = async () => {
-    const connection = await connectWallet();
-    if(!connection) return;
+    setIsConnecting(true);
+    try {
+      const connection = await connectWallet();
+      if(!connection) return;
 
-    const {signer, address } = connection;
-    setWalletAddress(address);
+      const {signer, address } = connection;
+      setWalletAddress(address);
+      localStorage.setItem('walletAddress', address);
 
-    const todoContract = getTodoContract(signer);
-    setContract(todoContract);
-    
-    await loadTasks(todoContract);
+      const todoContract = getTodoContract(signer);
+      setContract(todoContract);
+      
+      await loadTasks(todoContract);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnect = () => {
+    setWalletAddress('');
+    setContract(null);
+    setTasks([]);
+    localStorage.removeItem('walletAddress');
+    toast.success('Wallet disconnected');
   };
 
   const handleAddTask = async (taskName) => {
@@ -143,7 +176,12 @@ function App() {
         </div>
         
         <div className="relative z-10">
-          <Navbar walletAddress={walletAddress} onConnect={handleConnect} />
+          <Navbar 
+            walletAddress={walletAddress} 
+            onConnect={handleConnect} 
+            onDisconnect={handleDisconnect}
+            isConnecting={isConnecting}
+          />
           
           <main className="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -156,7 +194,7 @@ function App() {
                 </p>
               </div>
 
-              <TaskInput onAddTask={handleAddTask} />
+              <TaskInput onAddTask={handleAddTask} isLoading={isLoading} />
 
               <TaskList
                 tasks={tasks}
