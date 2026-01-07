@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useChainId, useConnect, useDisconnect, useConnection, useConnectors, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { switchChain } from '@wagmi/core';
 import { config } from '../config';
@@ -13,7 +13,7 @@ const CONTRACT_ADDRESS = '0x689E4E0D141Fac9034fFaDdC9f1d83035F88f9aC';
 
 function App() {
   const { connect } = useConnect();
-  const { address, isConnected, isConnecting } = useAccount();
+  const { address, isConnected, isConnecting } = useConnection();
   const chainId = useChainId();
   const connectors = useConnectors();
   const disconnect = useDisconnect();
@@ -55,10 +55,6 @@ function App() {
     completedAt: Number(task.completedAt),
     deletedAt: Number(task.deletedAt)
   })) : [];
-
-
-
-  console.log(data, 'the-data')
 
 
   // Auto-switch to Sepolia when connected to wrong chain
