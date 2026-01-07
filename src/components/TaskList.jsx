@@ -1,7 +1,7 @@
 import { ListTodo, CheckCircle2, Circle } from 'lucide-react';
 import TaskItem from './TaskItem';
 
-const TaskList = ({ tasks, onComplete, onDelete, onUpdate }) => {
+const TaskList = ({ tasks, onComplete, onDelete, onUpdate, processingTask }) => {
   const activeTasks = tasks.filter(task => task.completedAt === 0);
   const completedTasks = tasks.filter(task => task.completedAt > 0);
 
@@ -78,13 +78,16 @@ const TaskList = ({ tasks, onComplete, onDelete, onUpdate }) => {
           </h3>
           <div className="space-y-3">
             {activeTasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onComplete={onComplete}
-                onDelete={onDelete}
-                onUpdate={onUpdate}
-              />
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onComplete={onComplete}
+                  onDelete={onDelete}
+                  onUpdate={onUpdate}
+                  isCompleting={processingTask.id === task.id && processingTask.action === 'complete'}
+                  isUpdating={processingTask.id === task.id && processingTask.action === 'update'}
+                  isDeleting={processingTask.id === task.id && processingTask.action === 'delete'}
+                />
             ))}
           </div>
         </div>
@@ -100,13 +103,16 @@ const TaskList = ({ tasks, onComplete, onDelete, onUpdate }) => {
           </h3>
           <div className="space-y-3">
             {completedTasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onComplete={onComplete}
-                onDelete={onDelete}
-                onUpdate={onUpdate}
-              />
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onComplete={onComplete}
+                  onDelete={onDelete}
+                  onUpdate={onUpdate}
+                  isCompleting={processingTask.id === task.id && processingTask.action === 'complete'}
+                  isUpdating={processingTask.id === task.id && processingTask.action === 'update'}
+                  isDeleting={processingTask.id === task.id && processingTask.action === 'delete'}
+                />
             ))}
           </div>
         </div>

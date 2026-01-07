@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Trash2, Edit2, X, Save } from 'lucide-react';
 
-const TaskItem = ({ task, onComplete, onDelete, onUpdate }) => {
+const TaskItem = ({ task, onComplete, onDelete, onUpdate, isCompleting, isUpdating, isDeleting }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(task.name);
 
@@ -18,6 +18,7 @@ const TaskItem = ({ task, onComplete, onDelete, onUpdate }) => {
   };
 
   const isCompleted = task.completedAt > 0;
+  const isAnyProcessing = isCompleting || isUpdating || isDeleting;
 
   return (
     <div className="group relative">
@@ -29,14 +30,18 @@ const TaskItem = ({ task, onComplete, onDelete, onUpdate }) => {
           {/* Complete checkbox */}
           <button
             onClick={() => onComplete(task.id)}
-            disabled={isCompleted}
+            disabled={isCompleted || isAnyProcessing}
             className={`flex-shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
               isCompleted
                 ? 'bg-gradient-to-r from-green-500 to-emerald-500 border-green-400'
                 : 'border-purple-400 hover:border-purple-300 hover:bg-purple-500/20'
-            }`}
+            } ${isAnyProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {isCompleted && <Check className="h-4 w-4 text-white" />}
+            {isCompleting ? (
+              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              isCompleted && <Check className="h-4 w-4 text-white" />
+            )}
           </button>
 
           {/* Task content */}
@@ -50,7 +55,8 @@ const TaskItem = ({ task, onComplete, onDelete, onUpdate }) => {
                   if (e.key === 'Enter') handleUpdate();
                   if (e.key === 'Escape') handleCancel();
                 }}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                disabled={isAnyProcessing}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
                 autoFocus
               />
             ) : (
@@ -79,14 +85,20 @@ const TaskItem = ({ task, onComplete, onDelete, onUpdate }) => {
               <>
                 <button
                   onClick={handleUpdate}
-                  className="p-2 bg-green-600 hover:bg-green-500 rounded-lg transition-colors duration-200"
+                  disabled={isAnyProcessing}
+                  className="p-2 bg-green-600 hover:bg-green-500 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[36px]"
                   title="Save"
                 >
-                  <Save className="h-4 w-4 text-white" />
+                  {isUpdating ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <Save className="h-4 w-4 text-white" />
+                  )}
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="p-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors duration-200"
+                  disabled={isAnyProcessing}
+                  className="p-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors duration-200 disabled:opacity-50"
                   title="Cancel"
                 >
                   <X className="h-4 w-4 text-white" />
@@ -104,10 +116,15 @@ const TaskItem = ({ task, onComplete, onDelete, onUpdate }) => {
                 </button>
                 <button
                   onClick={() => onDelete(task.id)}
-                  className="p-2 bg-red-600 hover:bg-red-500 rounded-lg transition-all duration-200 hover:scale-110"
+                  disabled={isAnyProcessing}
+                  className="p-2 bg-red-600 hover:bg-red-500 rounded-lg transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center min-w-[36px]"
                   title="Delete"
                 >
-                  <Trash2 className="h-4 w-4 text-white" />
+                  {isDeleting ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <Trash2 className="h-4 w-4 text-white" />
+                  )}
                 </button>
               </>
             )}

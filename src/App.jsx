@@ -13,10 +13,11 @@ const CONTRACT_ADDRESS = '0x689E4E0D141Fac9034fFaDdC9f1d83035F88f9aC';
 
 function App() {
   const { connect } = useConnect();
-  const { address, isConnected, isConnecting } = useConnection();
+  const { address, isConnected, isConnecting } = useAccount();
   const chainId = useChainId();
   const connectors = useConnectors();
   const disconnect = useDisconnect();
+  const [processingTask, setProcessingTask] = useState({ id: null, action: null });
   const { data, isLoading: isDataLoading, refetch: refreshTasks } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: Todo.abi,
@@ -34,10 +35,12 @@ function App() {
   useEffect(() => {
     if (isConfirmed) {
       toast.success('Transaction confirmed!');
+      setProcessingTask({ id: null, action: null });
       refreshTasks();
     }
     if (writeError) {
       toast.error(writeError.shortMessage || 'Transaction failed');
+      setProcessingTask({ id: null, action: null });
     }
   }, [isConfirmed, writeError, refreshTasks]);
 
@@ -94,6 +97,7 @@ function App() {
   };
 
   const handleCompleteTask = async (taskId) => {
+    setProcessingTask({ id: taskId, action: 'complete' });
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: Todo.abi,
@@ -103,6 +107,7 @@ function App() {
   };
 
   const handleDeleteTask = async (taskId) => {
+    setProcessingTask({ id: taskId, action: 'delete' });
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: Todo.abi,
@@ -112,6 +117,7 @@ function App() {
   };
 
   const handleUpdateTask = async (taskId, newName) => {
+    setProcessingTask({ id: taskId, action: 'update' });
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: Todo.abi,
@@ -183,6 +189,7 @@ function App() {
                   onComplete={handleCompleteTask}
                   onDelete={handleDeleteTask}
                   onUpdate={handleUpdateTask}
+                  processingTask={processingTask}
                 />
               )}
             </div>
