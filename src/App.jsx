@@ -1,169 +1,123 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useChainId, useConnect, useDisconnect, useConnection, useConnectors, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { switchChain } from '@wagmi/core';
+import { config } from '../config';
+import { sepolia } from '@wagmi/core/chains';
+import toast, { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import TaskInput from './components/TaskInput';
 import TaskList from './components/TaskList';
-import { ethers } from 'ethers';
-import toast, { Toaster } from 'react-hot-toast';
-import { getTodoContract } from "./contracts/Todo";
+import Todo from '../build/contracts/Todo.json';
+
+const CONTRACT_ADDRESS = '0x689E4E0D141Fac9034fFaDdC9f1d83035F88f9aC';
 
 function App() {
-  // const ALCHEMY_API_KEY = import.meta.env.ALCHEMY_API_KEY
-  const [walletAddress, setWalletAddress] = useState('');
-  const [contract, setContract] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('walletAddress');
-    if (savedAddress) {
-      handleConnect();
-    }
-  }, []);
+  const { connect } = useConnect();
+  const { address, isConnected, isConnecting } = useConnection();
+  const chainId = useChainId();
+  const connectors = useConnectors();
+  const disconnect = useDisconnect();
+  const { data, isLoading: isDataLoading, refetch: refreshTasks } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: Todo.abi,
+    functionName: "getAllTasksForAUser",
+    account: address,
+    query: {
+      enabled: !!address,
+    },
+  });
+  const { data: hash, writeContract, isPending: isWritePending, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
 
-  const parseTaskData = (task) => ({
+  useEffect(() => {
+    if (isConfirmed) {
+      toast.success('Transaction confirmed!');
+      refreshTasks();
+    }
+    if (writeError) {
+      toast.error(writeError.shortMessage || 'Transaction failed');
+    }
+  }, [isConfirmed, writeError, refreshTasks]);
+
+  const isLoading = isWritePending || isConfirming;
+
+  // Format data for TaskList
+  const fetchedTasks = data ? data.map(task => ({
     id: Number(task.id),
     name: task.name,
     createdAt: Number(task.createdAt),
     updatedAt: Number(task.updatedAt),
     completedAt: Number(task.completedAt),
     deletedAt: Number(task.deletedAt)
-  });
+  })) : [];
 
-  const findEventInReceipt = (receipt, eventName) => {
-    return receipt.logs.find(log => {
-      try {
-        const parsed = contract.interface.parseLog(log);
-        return parsed.name === eventName;
-      } catch {
-        return false;
+
+
+  console.log(data, 'the-data')
+
+
+  // Auto-switch to Sepolia when connected to wrong chain
+  useEffect(() => {
+    const performSwitch = async () => {
+      if (isConnected && chainId !== sepolia.id) {
+        try {
+          await switchChain(config, { chainId: sepolia.id });
+        } catch (error) {
+          console.error("Failed to switch chain:", error);
+        }
       }
-    });
-  };
+    };
+    performSwitch();
+  }, [isConnected, chainId]);
 
-  const refreshTasks = async () => {
-    const allTasks = await contract.getAllTasksForAUser();
-    setTasks(allTasks.map(parseTaskData));
-  };
-
-  const executeTaskTransaction = async (txPromise, eventName, successMessage, errorMessage) => {
-    setIsLoading(true);
-    try {
-      const tx = await txPromise;
-      const receipt = await tx.wait();
-      const event = findEventInReceipt(receipt, eventName);
-
-      if (event) {
-        const parsed = contract.interface.parseLog(event);
-        console.log(`${eventName}:`, parsed.args);
-        await refreshTasks();
-        toast.success(successMessage);
-      }
-    } catch (error) {
-      console.error(errorMessage, error);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const connectWallet = async () => {
-    if(!window.ethereum){
-      toast.error("Please install MetaMask!")
-      return null;
-    }
-    
-    try{
-      await window.ethereum.request({method: 'eth_requestAccounts'});
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: "0xaa36a7"}],
-      })
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
-      return { provider, signer, address }; 
-    } catch (error){
-      if(error.code === 4902){
-        toast.error("Add Sepolia Chain to your wallet")
-      }
-       console.error("Error connecting wallet:", error);
-       toast.error("Error connecting wallet");
-       return null;
-    }
-  };
-
-  const loadTasks = async (todoContract) => {
-    try {
-      const allTasks = await todoContract.getAllTasksForAUser();
-      setTasks(allTasks.map(parseTaskData));
-      toast.success("Tasks loaded successfully!");
-    } catch (error) {
-      console.error("Error loading tasks:", error);
-      toast.error("Failed to load tasks");
-    }
-  };
-
-  const handleConnect = async () => {
-    setIsConnecting(true);
-    try {
-      const connection = await connectWallet();
-      if(!connection) return;
-
-      const {signer, address } = connection;
-      setWalletAddress(address);
-      localStorage.setItem('walletAddress', address);
-
-      const todoContract = getTodoContract(signer);
-      setContract(todoContract);
-      
-      await loadTasks(todoContract);
-    } finally {
-      setIsConnecting(false);
+  const handleConnect = () => {
+    const injectedConnector = connectors[0];
+    if (injectedConnector) {
+      connect({ connector: injectedConnector });
     }
   };
 
   const handleDisconnect = () => {
-    setWalletAddress('');
-    setContract(null);
-    setTasks([]);
-    localStorage.removeItem('walletAddress');
+    disconnect.mutate();
     toast.success('Wallet disconnected');
   };
 
   const handleAddTask = async (taskName) => {
-    await executeTaskTransaction(
-      contract.createTask(taskName),
-      "TaskCreated",
-      "Task created successfully!",
-      "Failed to create task"
-    );
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: Todo.abi,
+      functionName: 'createTask',
+      args: [taskName],
+    });
   };
 
   const handleCompleteTask = async (taskId) => {
-    await executeTaskTransaction(
-      contract.markTaskAsCompleted(taskId),
-      "TaskCompleted",
-      "Task completed successfully!",
-      "Failed to complete task"
-    );
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: Todo.abi,
+      functionName: 'markTaskAsCompleted',
+      args: [BigInt(taskId)],
+    });
   };
 
   const handleDeleteTask = async (taskId) => {
-    await executeTaskTransaction(
-      contract.deleteTask(taskId),
-      "TaskDeleted",
-      "Task deleted successfully!",
-      "Failed to delete task"
-    );
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: Todo.abi,
+      functionName: 'deleteTask',
+      args: [BigInt(taskId)],
+    });
   };
 
   const handleUpdateTask = async (taskId, newName) => {
-    await executeTaskTransaction(
-      contract.updateTask(newName, taskId),
-      "TaskUpdated",
-      "Task updated successfully!",
-      "Failed to update task"
-    );
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: Todo.abi,
+      functionName: 'updateTask',
+      args: [newName, BigInt(taskId)],
+    });
   };
 
   return (
@@ -176,11 +130,27 @@ function App() {
         </div>
         
         <div className="relative z-10">
+          {/* Global Connection Loader */}
+          {isConnecting && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md">
+              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/5 border border-white/10 shadow-2xl">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-purple-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+                  <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin relative z-10"></div>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-white mb-1">Connecting Wallet</h3>
+                  <p className="text-purple-300/70 text-sm">Please approve the connection in your wallet...</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Navbar 
-            walletAddress={walletAddress} 
+            walletAddress={address} 
             onConnect={handleConnect} 
             onDisconnect={handleDisconnect}
-            isConnecting={isConnecting}
+            isConnecting={connectors.isPending}
           />
           
           <main className="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
@@ -196,12 +166,25 @@ function App() {
 
               <TaskInput onAddTask={handleAddTask} isLoading={isLoading} />
 
-              <TaskList
-                tasks={tasks}
-                onComplete={handleCompleteTask}
-                onDelete={handleDeleteTask}
-                onUpdate={handleUpdateTask}
-              />
+              {isDataLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-purple-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+                    <div className="w-16 h-16 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin relative z-10"></div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-purple-300/70 font-medium animate-pulse">Fetching your tasks from the blockchain...</p>
+                    <p className="text-purple-300/40 text-xs mt-1 italic">This may take a moment depending on network status</p>
+                  </div>
+                </div>
+              ) : (
+                <TaskList
+                  tasks={fetchedTasks}
+                  onComplete={handleCompleteTask}
+                  onDelete={handleDeleteTask}
+                  onUpdate={handleUpdateTask}
+                />
+              )}
             </div>
           </main>
 

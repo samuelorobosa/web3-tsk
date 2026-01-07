@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Plus, Sparkles } from 'lucide-react';
 
-const TaskInput = ({ onAddTask }) => {
+const TaskInput = ({ onAddTask, isLoading }) => {
   const [taskName, setTaskName] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (taskName.trim()) {
+    if (taskName.trim() && !isLoading) {
       onAddTask(taskName);
       setTaskName('');
     }
@@ -35,20 +35,25 @@ const TaskInput = ({ onAddTask }) => {
                   onChange={(e) => setTaskName(e.target.value)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
-                  placeholder="What needs to be done?"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300"
+                  disabled={isLoading}
+                  placeholder={isLoading ? "Processing transaction..." : "What needs to be done?"}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 disabled:opacity-50"
                 />
               </div>
               
               <button
                 type="submit"
-                disabled={!taskName.trim()}
-                className="group relative px-6 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                disabled={!taskName.trim() || isLoading}
+                className="group relative px-6 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 min-w-[140px]"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-xl blur opacity-0 group-hover:opacity-75 transition-opacity duration-300"></div>
-                <div className="relative flex items-center space-x-2">
-                  <Plus className="h-5 w-5" />
-                  <span className="hidden sm:inline">Add Task</span>
+                <div className="relative flex items-center justify-center space-x-2">
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <Plus className="h-5 w-5" />
+                  )}
+                  <span className="hidden sm:inline">{isLoading ? 'Creating...' : 'Add Task'}</span>
                 </div>
               </button>
             </div>
